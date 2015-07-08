@@ -64,26 +64,44 @@ def keygen(k, t):
     h = pow(g, x, p)
     return p, g, x, h
 
+def rand(p):
+    return random.randint(1, p - 1)
+
+# see:
+# http://crypto.stanford.edu/~pgolle/papers/univrenc.pdf
 def main(args):
-    p, g, x, h = keygen(256, 1) # t is neglected
+    p, g, x, y = keygen(256, 1) # t is neglected
 
     # Generate a random message
-    m = random.randint(1, p - 1)
+    m = rand(p)
 
-    # Encrypt
-    y = random.randint(1, p - 1)
-    c1 = pow(g, y, p)
-    ss = pow(h, y, p)
-    c2 = (m * ss) % p
-    ct = (c1, c2)
+    # Encryption
+    k0, k1 = rand(p), rand(p) # r = (k0, k1)
+    alpha0 = (m * pow(y, k0, p)) % p
+    alpha1 = pow(g, k0, p)
+    beta0 = pow(y, k1, p)
+    beta1 = pow(g, k1, p)
+    ct = [(alpha0, alpha1), (beta0, beta1)]
 
-    # Decrypt
-    s = pow(c1, x, p)
-    mm = (c2 * modinv(s, p)) % p
+    # Decryption
+    m0 = (alpha0 * modinv(pow(beta0, x, p), p)) % p
+    m1 = (alpha1 * modinv(pow(beta1, x, p), p)) % p
 
-    print >> sys.stderr, "Plaintext          %x" % (m)
-    print >> sys.stderr, "Decrypted message: %x" % (mm)
-    assert m == mm
+    assert m1 == 1 # condition for decryption
+    print >> sys.stderr, "Plaintext             %x" % (m)
+    print >> sys.stderr, "Decrypted message #1: %x" % (m0)
+
+    # Re-encryption (only source of randomness is r' = (k0', k1'))
+    k0p, k1p = rand(p), rand(p)
+    alpha0p = (alpha0 * pow(alpha1, k0p, p)) % p
+    alpha1p = (beta0 * pow(beta1, k0p, p)) % p
+    beta0p = pow(alpha1, k1p, p)
+    beta1p = pow(beta1, k1p, p)
+
+    m0p = (alpha0p * modinv(pow(beta0p, x, p), p)) % p
+    m1p = (alpha1p * modinv(pow(beta1p, x, p), p)) % p
+    assert m1p == 1
+    print >> sys.stderr, "Decrypted message #2: %x" % (m0p)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
