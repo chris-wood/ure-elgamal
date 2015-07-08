@@ -78,10 +78,10 @@ def main(args):
     # Encryption
     k0, k1 = rand(p), rand(p) # r = (k0, k1)
     alpha0 = (m * pow(y, k0, p)) % p
-    alpha1 = pow(g, k0, p)
-    beta0 = pow(y, k1, p)
+    beta0 = pow(g, k0, p)
+    alpha1 = pow(y, k1, p)
     beta1 = pow(g, k1, p)
-    ct = [(alpha0, alpha1), (beta0, beta1)]
+    ct = [(alpha0, beta0), (alpha1, beta1)]
 
     # Decryption
     m0 = (alpha0 * modinv(pow(beta0, x, p), p)) % p
@@ -94,8 +94,8 @@ def main(args):
     # Re-encryption (only source of randomness is r' = (k0', k1'))
     k0p, k1p = rand(p), rand(p)
     alpha0p = (alpha0 * pow(alpha1, k0p, p)) % p
-    alpha1p = (beta0 * pow(beta1, k0p, p)) % p
-    beta0p = pow(alpha1, k1p, p)
+    beta0p = (beta0 * pow(beta1, k0p, p)) % p
+    alpha1p = pow(alpha1, k1p, p)
     beta1p = pow(beta1, k1p, p)
 
     m0p = (alpha0p * modinv(pow(beta0p, x, p), p)) % p
