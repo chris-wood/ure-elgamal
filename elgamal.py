@@ -17,91 +17,66 @@ def modinv(a, m):
     else:
         return x % m
 
-def millerRabin(n, t):
-    if n < 2 or n % 2 == 0:
-        return False
+def _rand(p):
+        return random.randint(1, p - 1)
 
-    # find r s.t. n-1=(2^s)r
-    s = 0
-    r = n - 1
-    while r % 2 == 0:
-        s += 1
-        r //= 2
-
-    for i in range(1, t + 1):
-        a = random.randint(2, n - 2)
-        exp = pow(a, r, n)
-        if exp != 1 and exp != (n - 1):
-            j = 1
-            while j <= (s - 1) and y != (n - 1):
-                y = pow(y, 2, n)
-                if y == 1:
-                    return False
-                j += 1
-            if y != (n - 1):
-                return False
-    return True
-
-def randomPrime(k, t):
-    n = random.getrandbits(k)
-    while not millerRabin(n, t):
-        n = random.getrandbits(k)
-    return n
-
-def generatePrimeAndGenerator(k, t):
-    #p = randomPrime(k, t)
-    #pp = p - 1
-    # factor pp (= p - 1)
-
+def _generatePrimeAndGenerator(k):
     prime = number.getPrime(k)
     g = random.randint(2, prime - 1)
-
     return prime, g
 
-def keygen(k, t):
-    p, g = generatePrimeAndGenerator(k, t)
-    x = random.randint(1, p - 1)
+def _keygen(k):
+    p, g = _generatePrimeAndGenerator(k)
+    x = _rand(p)
     h = pow(g, x, p)
     return p, g, x, h
 
-def rand(p):
-    return random.randint(1, p - 1)
+class ElGamal(object):
+    '''  See: http://crypto.stanford.edu/~pgolle/papers/univrenc.pdf
+    '''
+    def __init__(self, k):
+        self.p, self.g, self.x, self.y = _keygen(k)
 
-# see:
-# http://crypto.stanford.edu/~pgolle/papers/univrenc.pdf
+    def randomElement(self):
+        return _rand(self.p)
+
+    def encrypt(self, m, y):
+        k0, k1 = _rand(self.p), _rand(self.p) # r = (k0, k1)
+        alpha0 = (m * pow(y, k0, self.p)) % self.p
+        beta0 = pow(self.g, k0, self.p)
+        alpha1 = pow(y, k1, self.p)
+        beta1 = pow(self.g, k1, self.p)
+        ct = [(alpha0, beta0), (alpha1, beta1)]
+        return ct
+
+    def reencrypt(self, ct):
+        [(alpha0, beta0), (alpha1, beta1)] = ct
+        k0p, k1p = _rand(self.p), _rand(self.p)
+        alpha0p = (alpha0 * pow(alpha1, k0p, self.p)) % self.p
+        beta0p = (beta0 * pow(beta1, k0p, self.p)) % self.p
+        alpha1p = pow(alpha1, k1p, self.p)
+        beta1p = pow(beta1, k1p, self.p)
+        ct = [(alpha0p, beta0p), (alpha1p, beta1p)]
+        return ct
+
+    def decrypt(self, ct, x):
+        [(alpha0, beta0), (alpha1, beta1)] = ct
+        m0 = (alpha0 * modinv(pow(beta0, x, self.p), self.p)) % self.p
+        m1 = (alpha1 * modinv(pow(beta1, x, self.p), self.p)) % self.p
+        assert m1 == 1 # condition for decryption
+        return m0
+
 def main(args):
-    p, g, x, y = keygen(256, 1) # t is neglected
+    elgamal = ElGamal(int(args[0]))
+    m = elgamal.randomElement()
+    ct1 = elgamal.encrypt(m, elgamal.y)
+    m1 = elgamal.decrypt(ct1, elgamal.x)
+    ct2 = elgamal.reencrypt(ct1)
+    m2 = elgamal.decrypt(ct2, elgamal.x)
 
-    # Generate a random message
-    m = rand(p)
-
-    # Encryption
-    k0, k1 = rand(p), rand(p) # r = (k0, k1)
-    alpha0 = (m * pow(y, k0, p)) % p
-    beta0 = pow(g, k0, p)
-    alpha1 = pow(y, k1, p)
-    beta1 = pow(g, k1, p)
-    ct = [(alpha0, beta0), (alpha1, beta1)]
-
-    # Decryption
-    m0 = (alpha0 * modinv(pow(beta0, x, p), p)) % p
-    m1 = (alpha1 * modinv(pow(beta1, x, p), p)) % p
-
-    assert m1 == 1 # condition for decryption
-    print >> sys.stderr, "Plaintext             %x" % (m)
-    print >> sys.stderr, "Decrypted message #1: %x" % (m0)
-
-    # Re-encryption (only source of randomness is r' = (k0', k1'))
-    k0p, k1p = rand(p), rand(p)
-    alpha0p = (alpha0 * pow(alpha1, k0p, p)) % p
-    beta0p = (beta0 * pow(beta1, k0p, p)) % p
-    alpha1p = pow(alpha1, k1p, p)
-    beta1p = pow(beta1, k1p, p)
-
-    m0p = (alpha0p * modinv(pow(beta0p, x, p), p)) % p
-    m1p = (alpha1p * modinv(pow(beta1p, x, p), p)) % p
-    assert m1p == 1
-    print >> sys.stderr, "Decrypted message #2: %x" % (m0p)
+    print >> sys.stderr,  "%x" % (m)
+    print >> sys.stderr,  "%x" % (m1)
+    print >> sys.stderr,  "%x" % (m2)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
