@@ -74,9 +74,9 @@ def main(args):
     ct2 = elgamal.reencrypt(ct1)
     m2 = elgamal.decrypt(ct2, elgamal.x)
 
-    print >> sys.stderr,  "%x" % (m)
-    print >> sys.stderr,  "%x" % (m1)
-    print >> sys.stderr,  "%x" % (m2)
+    print >> sys.stderr, "%x" % (m)
+    print >> sys.stderr, "%x" % (m1)
+    print >> sys.stderr, "%x" % (m2)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
