@@ -17,25 +17,25 @@ def modinv(a, m):
     else:
         return x % m
 
-def _rand(p):
-        return random.randint(1, p - 1)
-
-def _generatePrimeAndGenerator(k):
-    prime = number.getPrime(k)
-    g = random.randint(2, prime - 1)
-    return prime, g
-
-def _keygen(k):
-    p, g = _generatePrimeAndGenerator(k)
-    x = _rand(p)
-    h = pow(g, x, p)
-    return p, g, x, h
-
 class ElGamal(object):
     '''  See: http://crypto.stanford.edu/~pgolle/papers/univrenc.pdf
     '''
+    def rand(p):
+            return random.randint(1, p - 1)
+
+    def generatePrimeAndGenerator(k):
+        prime = number.getPrime(k)
+        g = random.randint(2, prime - 1)
+        return prime, g
+
+    def keygen(k):
+        p, g = ElGamal.generatePrimeAndGenerator(k)
+        x = ElGamal.rand(p)
+        h = pow(g, x, p)
+        return p, g, x, h
+
     def __init__(self, k):
-        self.p, self.g, self.x, self.y = _keygen(k)
+        self.p, self.g, self.x, self.y = ElGamal.keygen(k)
 
     def randomElement(self):
         return _rand(self.p)
